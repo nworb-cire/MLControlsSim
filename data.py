@@ -43,10 +43,10 @@ class LatAccelDataModule(pl.LightningDataModule):
         for file in glob(f"{self.path}*.csv"):
             df = pd.read_csv(file)
             if len(df) < self.segment_length:
-                logging.warning(f"File {file} has length {len(df)} instead of {self.segment_length}, skipping")
+                logging.info(f"File {file} has length {len(df):,} instead of {self.segment_length}, skipping")
                 continue
             if len(df) > self.segment_length:
-                logging.warning(f"File {file} has length {len(df)} instead of {self.segment_length}, truncating")
+                logging.info(f"File {file} has length {len(df)} instead of {self.segment_length}, truncating")
                 df = df.iloc[:self.segment_length]
             df = df[self.x_cols + [self.y_col]]
             dfs.append(df)
@@ -55,7 +55,9 @@ class LatAccelDataModule(pl.LightningDataModule):
         train_dfs = [dfs[i] for i in train_idxs]
         val_dfs = [df for i, df in enumerate(dfs) if i not in train_idxs]
         self.train = LatAccelDataset(train_dfs, self.input_length, self.x_cols, self.y_col, self.segment_length)
+        print(f"Training set has {len(self.train)} samples")
         self.val = LatAccelDataset(val_dfs, self.input_length, self.x_cols, self.y_col, self.segment_length)
+        print(f"Validation set has {len(self.val)} samples")
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=4, persistent_workers=True)
