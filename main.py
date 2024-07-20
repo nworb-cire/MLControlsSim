@@ -12,16 +12,15 @@ def main():
         input_length=10,
     )
     data = LatAccelDataModule(
-        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/00",
+        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/",
         x_cols=["steerFiltered", "roll", "vEgo", "aEgo"],
         y_col="latAccelLocalizer",
-        batch_size=2 ** 9,
+        batch_size=2 ** 10,
         input_length=10,
     )
     trainer = pl.Trainer(
-        max_epochs=10,
-        log_every_n_steps=25,
-        overfit_batches=2,
+        max_epochs=20,
+        precision=32,
     )
     trainer.fit(model, datamodule=data)
 
