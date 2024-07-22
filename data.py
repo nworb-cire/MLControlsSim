@@ -9,11 +9,9 @@ from torch.utils.data import Dataset, DataLoader
 
 
 class LatAccelDataset(Dataset):
-    def __init__(self, dfs: list[pd.DataFrame], input_length, x_cols: list[str], y_col: str, segment_length: int):
+    def __init__(self, dfs: list[pd.DataFrame], input_length, segment_length: int):
         self.data = torch.cat([torch.tensor(df.values, dtype=torch.float32).unsqueeze(0) for df in dfs], dim=0)
         self.input_length = input_length
-        self.x_cols = x_cols
-        self.y_col = y_col
         self.segment_length = segment_length
 
     def __len__(self):
@@ -54,9 +52,9 @@ class LatAccelDataModule(pl.LightningDataModule):
         train_idxs = np.random.choice(len(dfs), int(0.8 * len(dfs)), replace=False)
         train_dfs = [dfs[i] for i in train_idxs]
         val_dfs = [df for i, df in enumerate(dfs) if i not in train_idxs]
-        self.train = LatAccelDataset(train_dfs, self.input_length, self.x_cols, self.y_col, self.segment_length)
+        self.train = LatAccelDataset(train_dfs, self.input_length, self.segment_length)
         print(f"Training set has {len(self.train)} samples")
-        self.val = LatAccelDataset(val_dfs, self.input_length, self.x_cols, self.y_col, self.segment_length)
+        self.val = LatAccelDataset(val_dfs, self.input_length, self.segment_length)
         print(f"Validation set has {len(self.val)} samples")
 
     def train_dataloader(self):
