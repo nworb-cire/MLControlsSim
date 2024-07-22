@@ -10,21 +10,21 @@ from torch.utils.data import Dataset, DataLoader
 
 class LatAccelDataset(Dataset):
     def __init__(self, dfs: list[pd.DataFrame], input_length, x_cols: list[str], y_col: str, segment_length: int):
-        self.data = dfs
+        self.data = torch.cat([torch.tensor(df.values, dtype=torch.float32).unsqueeze(0) for df in dfs], dim=0)
         self.input_length = input_length
         self.x_cols = x_cols
         self.y_col = y_col
         self.segment_length = segment_length
 
     def __len__(self):
-        return len(self.data) * (self.segment_length - self.input_length)
+        return self.data.shape[0] * (self.segment_length - self.input_length)
 
     def __getitem__(self, idx):
         segment_idx = idx // (self.segment_length - self.input_length)
         start_idx = idx % (self.segment_length - self.input_length)
-        segment = self.data[segment_idx].iloc[start_idx:start_idx + self.input_length]
-        x = torch.tensor(segment[self.x_cols].values, dtype=torch.float32)
-        y = torch.tensor(segment[self.y_col].values, dtype=torch.float32)
+        segment = self.data[segment_idx, start_idx:start_idx + self.input_length, :]
+        x = segment[:, :-1]
+        y = segment[:, -1]
         return x, y
 
 
