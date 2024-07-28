@@ -3,6 +3,7 @@ from glob import glob
 import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
+import torch
 from torch.utils.data import Dataset, DataLoader
 
 from tokenizer import LataccelTokenizer
@@ -11,13 +12,13 @@ from tokenizer import LataccelTokenizer
 class LatAccelDataset(Dataset):
     def __init__(self, data):
         assert data.ndim == 3
-        self.data = data
+        self.data = torch.tensor(data, dtype=torch.float32)
 
     def __len__(self):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :, :-1], self.data[idx, :, -1]
+        return self.data[idx, :, :-1], self.data[idx, :, -1].to(dtype=torch.int64)
 
 
 class LatAccelDataModule(pl.LightningDataModule):
