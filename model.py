@@ -184,6 +184,10 @@ class MLControlsSim(pl.LightningModule):
         self.model = GPT(GPTConfig(n_layer=n_layers, n_head=n_head, n_embd=n_embd))
         self.save_hyperparameters()
 
+    def forward(self, x, y):
+        logits, loss = self.model(x, y)
+        return logits, loss
+
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits, loss = self(x, y)
