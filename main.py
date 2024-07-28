@@ -6,16 +6,13 @@ import pytorch_lightning as pl
 def main():
     data = LatAccelDataModule(
         path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/0",
-        x_cols=["steerFiltered", "roll", "vEgo", "aEgo"],
-        y_col="latAccelLocalizer",
         batch_size=2 ** 10,
-        input_length=10,
     )
     model = MLControlsSim(
         input_dim=len(data.x_cols),
-        d_model=128,
-        nhead=4,
-        num_layers=4,
+        d_model=48,
+        nhead=3,
+        num_layers=3,
         input_length=10,
     )
     trainer = pl.Trainer(
