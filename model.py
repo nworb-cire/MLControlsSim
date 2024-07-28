@@ -201,23 +201,18 @@ class MLControlsSim(pl.LightningModule):
         super().__init__()
         self.lr = lr
         self.weight_decay = weight_decay
+        self.model = GPT(GPTConfig(n_layer=n_layers, n_head=n_head, n_embd=n_embd))
         self.save_hyperparameters()
-
-    def forward(self, x):
-        return self.model(x)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
-        loss = self.criterion(y_hat, y)
+        logits, loss = self(x, y)
         self.log('train_loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_hat = self(x)
-        loss = self.criterion(y_hat, y)
-        self.log('val_loss', loss)
+        logits, loss = self(x, y)
         return loss
 
     def configure_optimizers(self):
