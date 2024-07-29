@@ -58,7 +58,7 @@ class LatAccelDataModule(pl.LightningDataModule):
         # Concatenate: (n_sequences, sequence_length, n_features)
         data = np.concatenate(segments, axis=0)
 
-        train_size = int(data.shape[0] * 0.8)
+        train_size = int(data.shape[0] * 0.9)
         self.train = LatAccelDataset(data[:train_size])
         self.val = LatAccelDataset(data[train_size:])
 

@@ -6,7 +6,7 @@ from lightning.pytorch.loggers import CSVLogger
 
 def main():
     data = LatAccelDataModule(
-        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/0",
+        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/",
         batch_size=2 ** 7,
     )
     model = MLControlsSim(
