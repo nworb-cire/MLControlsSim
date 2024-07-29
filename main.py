@@ -4,6 +4,16 @@ import pytorch_lightning as pl
 from lightning.pytorch.loggers import CSVLogger
 
 
+def validate():
+    model = MLControlsSim.load_from_checkpoint("lightning_logs/version_9/checkpoints/epoch=0-step=1000.ckpt")
+    data = LatAccelDataModule(
+        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/000",
+        batch_size=2 ** 10,
+    )
+    trainer = pl.Trainer()
+    trainer.validate(model, datamodule=data)
+
+
 def main():
     data = LatAccelDataModule(
         path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/",
