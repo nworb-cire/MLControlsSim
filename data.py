@@ -1,4 +1,5 @@
 from glob import glob
+import logging
 
 import numpy as np
 import pandas as pd
@@ -29,7 +30,7 @@ class LatAccelDataModule(pl.LightningDataModule):
         "aEgo",
     ]
     y_col = "latAccelLocalizer"
-    SEGMENT_LENGTH = 600
+    SEGMENT_LENGTH = 512
 
     def __init__(self, path: str, batch_size: int):
         super().__init__()
@@ -46,11 +47,9 @@ class LatAccelDataModule(pl.LightningDataModule):
             df[self.y_col] = self.tokenizer.encode(df[self.y_col])
             val = df.values
             if val.shape[0] < self.SEGMENT_LENGTH:
-                # pad with nan
-                val = np.pad(val, ((0, self.SEGMENT_LENGTH - val.shape[0]), (0, 0)))
-            elif val.shape[0] > self.SEGMENT_LENGTH:
-                # truncate
-                val = val[:self.SEGMENT_LENGTH]
+                logging.warning(f"File {file} is too short: {val.shape[0]}")
+                continue
+            val = val[:self.SEGMENT_LENGTH]
             # add batch dimension
             val = val[np.newaxis]
             segments.append(val)
@@ -59,8 +58,11 @@ class LatAccelDataModule(pl.LightningDataModule):
         data = np.concatenate(segments, axis=0)
 
         train_size = int(data.shape[0] * 0.9)
-        self.train = LatAccelDataset(data[:train_size])
-        self.val = LatAccelDataset(data[train_size:])
+        print(f"Train size: {train_size:,}, Val size: {data.shape[0] - train_size:,}")
+        self.train = LatAccelDataset(data[:train_size, :, :])
+        assert len(self.train) == train_size
+        self.val = LatAccelDataset(data[train_size:, :, :])
+        assert len(self.val) == data.shape[0] - train_size
 
     def train_dataloader(self):
         return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=4, persistent_workers=True)

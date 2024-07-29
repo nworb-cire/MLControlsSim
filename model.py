@@ -10,7 +10,7 @@ from torch.nn import functional as F
 
 @dataclass
 class GPTConfig:
-    block_size: int = 1024
+    block_size: int = 512
     vocab_size: int = 1024
     n_layer: int = 3
     n_head: int = 3
