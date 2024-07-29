@@ -192,12 +192,13 @@ class MLControlsSim(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x, y = batch
         logits, loss = self(x, y)
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
         logits, loss = self(x, y)
+        self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def configure_optimizers(self):

@@ -1,24 +1,27 @@
 from data import LatAccelDataModule
 from model import MLControlsSim
 import pytorch_lightning as pl
+from lightning.pytorch.loggers import CSVLogger
 
 
 def main():
     data = LatAccelDataModule(
-        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/000",
-        batch_size=2 ** 10,
+        path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/0",
+        batch_size=2 ** 7,
     )
     model = MLControlsSim(
         n_layers=3,
-        n_head=3,
-        n_embd=48,
+        n_head=4,
+        n_embd=64,
         lr=6e-4,
         weight_decay=0.1,
     )
+    logger = CSVLogger(".")
     trainer = pl.Trainer(
-        max_epochs=20,
+        max_epochs=500,
         precision=32,
-        fast_dev_run=True,
+        overfit_batches=3,
+        logger=logger,
     )
     trainer.fit(model, datamodule=data)
 
