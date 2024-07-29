@@ -159,7 +159,7 @@ class GPT(nn.Module):
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
         assert exog.size(2) == self.config.d_in - 1, f"Expected {self.config.d_in - 1} exogenous features, got {exog.size(0)}"
-        assert exog.size(1) >= max_new_tokens, f"Expected exogenous features to cover at least {max_new_tokens} time steps"
+        assert exog.size(1) >= max_new_tokens, f"Expected exogenous features to cover at least {max_new_tokens} time steps, got {exog.size(1)}"
         for i in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
@@ -212,19 +212,23 @@ class MLControlsSim(pl.LightningModule):
         return loss
 
     def on_validation_epoch_end(self) -> None:
-        for x, y, m in self.trainer.datamodule.val_dataloader():
+        dm = self.trainer.datamodule
+        for x, y, m in dm.val_dataloader():
+            if torch.any(m):  # skip masked sequences
+                continue
             x = x.to(self.device)
-            idx = x[[0], :30, :]
-            exog = x[[0], 30:, :-1]
+            idx = x[[0], :dm.CONTEXT_SIZE, :]
+            exog = x[[0], dm.CONTEXT_SIZE:, :-1]
             preds = self.model.generate(
                 idx=idx,
                 exog=exog,
                 max_new_tokens=20,
             )
+            steer_input = x[0, :, 0].cpu().numpy()
             y_pred = preds[0, :, -1].cpu().numpy().astype(int)
-            y_pred = self.trainer.datamodule.tokenizer.decode(y_pred)
+            y_pred = dm.tokenizer.decode(y_pred)
             y_true = y[0, :].cpu().numpy().astype(int)[:len(y_pred)]
-            y_true = self.trainer.datamodule.tokenizer.decode(y_true)
+            y_true = dm.tokenizer.decode(y_true)
 
             plt.plot(y_true, label="True")
             plt.plot(y_pred, label="Pred")

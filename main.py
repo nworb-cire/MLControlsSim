@@ -7,10 +7,10 @@ from lightning.pytorch.loggers import CSVLogger
 def main():
     data = LatAccelDataModule(
         path="../NNFF/data/CHEVROLET_VOLT_PREMIER_2017/",
-        batch_size=2 ** 7,
+        batch_size=2 ** 10,
     )
     model = MLControlsSim(
-        n_layers=3,
+        n_layers=4,
         n_head=4,
         n_embd=64,
         lr=6e-4,
@@ -20,9 +20,8 @@ def main():
     trainer = pl.Trainer(
         max_epochs=500,
         precision=32,
-        overfit_batches=3,
         logger=logger,
-        val_check_interval=10,
+        val_check_interval=50,
     )
     trainer.fit(model, datamodule=data)
 
