@@ -1,10 +1,12 @@
 import inspect
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
+from matplotlib import pyplot as plt
 from torch.nn import functional as F
 
 
@@ -15,7 +17,7 @@ class GPTConfig:
     n_layer: int = 3
     n_head: int = 3
     n_embd: int = 48
-    d_in: int = 4
+    d_in: int = 5
     dropout: float = 0.1
     bias: bool = True  # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
@@ -146,13 +148,15 @@ class GPT(nn.Module):
         return logits, loss
 
     @torch.no_grad()
-    def generate(self, idx, max_new_tokens, temperature=1.0, top_k=None):
+    def generate(self, idx, max_new_tokens, exog, temperature=1.0, top_k=None):
         """
         Take a conditioning sequence of indices idx (LongTensor of shape (b,t)) and complete
         the sequence max_new_tokens times, feeding the predictions back into the model each time.
         Most likely you'll want to make sure to be in model.eval() mode of operation for this.
         """
-        for _ in range(max_new_tokens):
+        assert exog.size(2) == self.config.d_in - 1, f"Expected {self.config.d_in - 1} exogenous features, got {exog.size(0)}"
+        assert exog.size(1) >= max_new_tokens, f"Expected exogenous features to cover at least {max_new_tokens} time steps"
+        for i in range(max_new_tokens):
             # if the sequence context is growing too long we must crop it at block_size
             idx_cond = idx if idx.size(1) <= self.config.block_size else idx[:, -self.config.block_size:]
             # forward the model to get the logits for the index in the sequence
@@ -167,6 +171,7 @@ class GPT(nn.Module):
             probs = F.softmax(logits, dim=-1)
             # sample from the distribution
             idx_next = torch.multinomial(probs, num_samples=1)
+            idx_next = torch.cat((exog[:, i, :], idx_next), dim=1).unsqueeze(0)
             # append sampled index to the running sequence and continue
             idx = torch.cat((idx, idx_next), dim=1)
 
@@ -194,7 +199,7 @@ class MLControlsSim(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         logits, loss = self(*batch)
-        self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log('train_loss', loss, on_step=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):

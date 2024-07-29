@@ -31,6 +31,7 @@ class LatAccelDataModule(pl.LightningDataModule):
         "roll",
         "vEgo",
         "aEgo",
+        "latAccelLocalizer",
     ]
     y_col = "latAccelLocalizer"
     SEGMENT_LENGTH = 512
