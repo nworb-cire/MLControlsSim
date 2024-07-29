@@ -92,10 +92,12 @@ class GPT(nn.Module):
         super().__init__()
         assert config.vocab_size is not None
         assert config.block_size is not None
+        assert config.n_embd % 2 == 0, "n_embd must be even"
         self.config = config
 
         self.transformer = nn.ModuleDict(dict(
-            wte=nn.Linear(config.d_in, config.n_embd, bias=config.bias),
+            wte=nn.Linear(config.d_in - 1, config.n_embd // 2, bias=config.bias),
+            wte2=nn.Embedding(config.vocab_size, config.n_embd // 2),
             wpe=nn.Embedding(config.block_size, config.n_embd),
             drop=nn.Dropout(config.dropout),
             h=nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
@@ -126,9 +128,11 @@ class GPT(nn.Module):
         pos = torch.arange(0, t, dtype=torch.long, device=device)  # shape (t)
 
         # forward the GPT model itself
-        tok_emb = self.transformer.wte(idx)  # token embeddings of shape (b, t, n_embd)
+        num_emb = self.transformer.wte(idx[:, :, :-1])  # numerical "embeddings"
+        tok_emb = self.transformer.wte2(idx[:, :, -1].to(dtype=torch.long))  # token embeddings
+        emb = torch.cat((num_emb, tok_emb), dim=-1)
         pos_emb = self.transformer.wpe(pos)  # position embeddings of shape (t, n_embd)
-        x = self.transformer.drop(tok_emb + pos_emb)
+        x = self.transformer.drop(emb + pos_emb)
         for block in self.transformer.h:
             x = block(x)
         x = self.transformer.ln_f(x)
