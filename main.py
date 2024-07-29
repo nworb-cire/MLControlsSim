@@ -22,6 +22,7 @@ def main():
         precision=32,
         logger=logger,
         val_check_interval=200,
+        gradient_clip_val=1.0,
     )
     trainer.fit(model, datamodule=data)
 
