@@ -84,4 +84,4 @@ class LatAccelDataModule(pl.LightningDataModule):
         return DataLoader(self.train, batch_size=self.batch_size, shuffle=True, num_workers=4, persistent_workers=True)
 
     def val_dataloader(self):
-        return DataLoader(self.val, batch_size=self.batch_size, num_workers=4, persistent_workers=True)
+        return DataLoader(self.val, batch_size=self.batch_size * 4, num_workers=4, persistent_workers=True)
