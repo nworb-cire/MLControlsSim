@@ -12,16 +12,16 @@ def main():
     model = MLControlsSim(
         n_layers=4,
         n_head=4,
-        n_embd=64,
+        n_embd=128,
         lr=6e-4,
         weight_decay=0.1,
     )
     logger = CSVLogger(".")
     trainer = pl.Trainer(
-        max_epochs=500,
+        max_steps=10_000,
         precision=32,
         logger=logger,
-        val_check_interval=50,
+        val_check_interval=200,
     )
     trainer.fit(model, datamodule=data)
 
