@@ -15,6 +15,7 @@ class GPTConfig:
     n_layer: int = 3
     n_head: int = 3
     n_embd: int = 48
+    d_in: int = 4
     dropout: float = 0.1
     bias: bool = True  # True: bias in Linears and LayerNorms, like GPT-2. False: a bit better and faster
 
@@ -92,14 +93,14 @@ class GPT(nn.Module):
         self.config = config
 
         self.transformer = nn.ModuleDict(dict(
-            wte=nn.Embedding(config.vocab_size, config.n_embd),
+            wte=nn.Linear(config.d_in, config.n_embd, bias=config.bias),
             wpe=nn.Embedding(config.block_size, config.n_embd),
             drop=nn.Dropout(config.dropout),
             h=nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
             ln_f=nn.LayerNorm(config.n_embd, bias=config.bias),
         ))
         self.lm_head = nn.Linear(config.n_embd, config.vocab_size, bias=False)
-        self.transformer.wte.weight = self.lm_head.weight  # https://paperswithcode.com/method/weight-tying
+        # self.transformer.wte.weight = self.lm_head.weight  # https://paperswithcode.com/method/weight-tying
 
         # init all weights
         self.apply(self._init_weights)
@@ -118,7 +119,7 @@ class GPT(nn.Module):
 
     def forward(self, idx, targets=None):
         device = idx.device
-        b, t = idx.size()
+        b, t, _ = idx.size()
         assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
         pos = torch.arange(0, t, dtype=torch.long, device=device)  # shape (t)
 
