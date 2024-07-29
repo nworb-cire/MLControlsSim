@@ -230,12 +230,12 @@ class MLControlsSim(pl.LightningModule):
             y_true = y[0, :].cpu().numpy().astype(int)[:len(y_pred)]
             y_true = dm.tokenizer.decode(y_true)
 
-            plt.plot(steer_input, y_true, label="True")
-            plt.plot(steer_input, y_pred, label="Pred")
-            plt.xlabel("SteerFiltered")
+            plt.plot(y_true, label="True")
+            plt.plot(y_pred, label="Pred")
+            plt.xlabel("Time step")
             plt.ylabel("LatAccel")
             plt.legend()
-            save_path = f"{self.logger.log_dir}/val_predictions/{self.global_step:03}.png"
+            save_path = f"{self.logger.log_dir}/val_predictions/{self.current_epoch:03}.png"
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             plt.savefig(save_path)
             plt.close()
