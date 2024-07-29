@@ -209,37 +209,34 @@ class MLControlsSim(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         logits, loss = self(*batch)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
+
+        if batch_idx % 5 == 0:
+            self.plot_predictions(*batch)
         return loss
 
-    def on_validation_epoch_end(self) -> None:
+    def plot_predictions(self, x, y, mask) -> None:
         dm = self.trainer.datamodule
-        for x, y, m in dm.val_dataloader():
-            if torch.any(m):  # skip masked sequences
-                continue
-            x = x.to(self.device)
-            idx = x[[0], :dm.CONTEXT_SIZE, :]
-            exog = x[[0], dm.CONTEXT_SIZE:, :-1]
-            preds = self.model.generate(
-                idx=idx,
-                exog=exog,
-                max_new_tokens=20,
-            )
-            steer_input = x[0, :, 0].cpu().numpy()
-            y_pred = preds[0, :, -1].cpu().numpy().astype(int)
-            y_pred = dm.tokenizer.decode(y_pred)
-            y_true = y[0, :].cpu().numpy().astype(int)[:len(y_pred)]
-            y_true = dm.tokenizer.decode(y_true)
+        idx = x[[0], :dm.CONTEXT_SIZE, :]
+        exog = x[[0], dm.CONTEXT_SIZE:, :-1]
+        preds = self.model.generate(
+            idx=idx,
+            exog=exog,
+            max_new_tokens=20,
+        )
+        y_pred = preds[0, :, -1].cpu().numpy().astype(int)
+        y_pred = dm.tokenizer.decode(y_pred)
+        y_true = y[0, :].cpu().numpy().astype(int)[:len(y_pred)]
+        y_true = dm.tokenizer.decode(y_true)
 
-            plt.plot(y_true, label="True")
-            plt.plot(y_pred, label="Pred")
-            plt.xlabel("Time step")
-            plt.ylabel("LatAccel")
-            plt.legend()
-            save_path = f"{self.logger.log_dir}/val_predictions/{self.current_epoch:03}.png"
-            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-            plt.savefig(save_path)
-            plt.close()
-            break
+        plt.plot(y_true, label="True")
+        plt.plot(y_pred, label="Pred")
+        plt.xlabel("Time step")
+        plt.ylabel("LatAccel")
+        plt.legend()
+        save_path = f"{self.logger.log_dir}/val_predictions/{self.current_epoch:03}.png"
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        plt.savefig(save_path)
+        plt.close()
 
     def configure_optimizers(self):
         # start with all of the candidate parameters
