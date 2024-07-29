@@ -117,7 +117,7 @@ class GPT(nn.Module):
         elif isinstance(module, nn.Embedding):
             torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
 
-    def forward(self, idx, targets=None):
+    def forward(self, idx, targets=None, mask=None):
         device = idx.device
         b, t, _ = idx.size()
         assert t <= self.config.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
@@ -134,6 +134,9 @@ class GPT(nn.Module):
         if targets is not None:
             # if we are given some desired targets also calculate the loss
             logits = self.lm_head(x)
+            if mask is not None:
+                logits = logits[~mask]
+                targets = targets[~mask]
             loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
         else:
             # inference-time mini-optimization: only forward the lm_head on the very last position
@@ -185,19 +188,17 @@ class MLControlsSim(pl.LightningModule):
         self.model = GPT(GPTConfig(n_layer=n_layers, n_head=n_head, n_embd=n_embd))
         self.save_hyperparameters()
 
-    def forward(self, x, y):
-        logits, loss = self.model(x, y)
+    def forward(self, *args):
+        logits, loss = self.model(*args)
         return logits, loss
 
     def training_step(self, batch, batch_idx):
-        x, y = batch
-        logits, loss = self(x, y)
+        logits, loss = self(*batch)
         self.log('train_loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch
-        logits, loss = self(x, y)
+        logits, loss = self(*batch)
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 

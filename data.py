@@ -19,7 +19,10 @@ class LatAccelDataset(Dataset):
         return self.data.shape[0]
 
     def __getitem__(self, idx):
-        return self.data[idx, :, :-1], self.data[idx, :, -1].to(dtype=torch.int64)
+        x = self.data[idx, :, :-2]
+        y = self.data[idx, :, -2].to(dtype=torch.long)
+        mask = self.data[idx, :, -1].to(dtype=torch.bool)
+        return x, y, mask
 
 
 class LatAccelDataModule(pl.LightningDataModule):
@@ -42,9 +45,14 @@ class LatAccelDataModule(pl.LightningDataModule):
         segments = []
         for file in glob(f"{self.path}*.csv"):
             df = pd.read_csv(file)
-            df = df[self.x_cols + [self.y_col]]
+            df = df[self.x_cols + [self.y_col, "latActive", "steeringPressed"]]
             df["roll"] = np.sin(df["roll"]) * 9.81
             df[self.y_col] = self.tokenizer.encode(df[self.y_col])
+            df["mask"] = ~df["latActive"] | df["steeringPressed"]
+            # mask before and after 10 time steps
+            df["mask"] = df["mask"].rolling(10, center=True, min_periods=1).max()
+            df["mask"] = df["mask"].shift(-5).fillna(1.0)
+            df.drop(columns=["latActive", "steeringPressed"], inplace=True)
             val = df.values
             if val.shape[0] < self.SEGMENT_LENGTH:
                 logging.warning(f"File {file} is too short: {val.shape[0]}")
