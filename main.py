@@ -22,6 +22,7 @@ def main():
         precision=32,
         overfit_batches=3,
         logger=logger,
+        val_check_interval=10,
     )
     trainer.fit(model, datamodule=data)
 

@@ -207,6 +207,32 @@ class MLControlsSim(pl.LightningModule):
         self.log('val_loss', loss, on_epoch=True, prog_bar=True, logger=True)
         return loss
 
+    def on_validation_epoch_end(self) -> None:
+        for x, y, m in self.trainer.datamodule.val_dataloader():
+            x = x.to(self.device)
+            idx = x[[0], :30, :]
+            exog = x[[0], 30:, :-1]
+            preds = self.model.generate(
+                idx=idx,
+                exog=exog,
+                max_new_tokens=20,
+            )
+            y_pred = preds[0, :, -1].cpu().numpy().astype(int)
+            y_pred = self.trainer.datamodule.tokenizer.decode(y_pred)
+            y_true = y[0, :].cpu().numpy().astype(int)[:len(y_pred)]
+            y_true = self.trainer.datamodule.tokenizer.decode(y_true)
+
+            plt.plot(y_true, label="True")
+            plt.plot(y_pred, label="Pred")
+            plt.xlabel("Time step")
+            plt.ylabel("LatAccel")
+            plt.legend()
+            save_path = f"{self.logger.log_dir}/val_predictions/{self.current_epoch:03}.png"
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            plt.savefig(save_path)
+            plt.close()
+            break
+
     def configure_optimizers(self):
         # start with all of the candidate parameters
         param_dict = {pn: p for pn, p in self.named_parameters()}
